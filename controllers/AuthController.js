@@ -1,6 +1,6 @@
 const User = require('../models/User')
 const bcrypt = require('bcryptjs')
-const { create } = require('express-handlebars')
+
 
 
 module.exports = class AuthController {
@@ -8,6 +8,40 @@ module.exports = class AuthController {
     static login (req, res){
 
         res.render('auth/login')
+
+    }
+
+    static async loginPost (req, res){
+
+        const {email, password} = req.body
+
+        const user = await User.findOne({where: { email:email }})
+
+        if(!user){
+
+            req.flash('message', 'Usuário não encontrado!')
+            res.render('auth/login')
+            
+            return
+
+        }
+        
+        const passwordMatch = bcrypt.compareSync(password, user.password)
+
+        if(!passwordMatch){
+
+            req.flash('message', 'Senha incorreta!')
+            res.render('auth/login')
+
+        }
+
+        req.session.userid = user.id
+
+        req.flash('message', 'Autenticação realizada com sucesso!')
+
+        req.session.save(() => {
+            res.redirect('/')
+        })
 
     }
 
@@ -68,6 +102,11 @@ module.exports = class AuthController {
 
     }
 
-    
+    static logout (req, res){
+
+        req.session.destroy()
+        res.redirect('/login')
+
+    }
 
 }
